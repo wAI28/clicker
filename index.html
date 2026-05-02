@@ -29,9 +29,8 @@
             transition: transform 0.1s; outline: none; -webkit-tap-highlight-color: transparent;
         }
         .click-btn:active { transform: scale(0.90); }
-        .user-info { margin-top: 20px; font-size: 0.9rem; color: #888; }
+        .user-info { margin-top: 20px; font-size: 0.9rem; color: #888; text-align: center; }
 
-        /* 리더보드 슬라이딩 패널 */
         .rank-panel {
             position: fixed; bottom: 0; left: 50%; transform: translateX(-50%) translateY(calc(100% - 70px));
             width: 100%; max-width: 500px; height: 75vh; background-color: var(--rank-bg);
@@ -62,8 +61,7 @@
             <div class="handle"></div>
             <div class="rank-title">LEADERBOARD</div>
         </div>
-        <div class="rank-content" id="rankList">
-            </div>
+        <div class="rank-content" id="rankList"></div>
     </div>
 
     <script type="module">
@@ -71,7 +69,6 @@
         import { getFirestore, doc, setDoc, increment, onSnapshot, collection, query, orderBy, limit, getDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
         import { getAuth, signInWithRedirect, GoogleAuthProvider, onAuthStateChanged, getRedirectResult } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
 
-        // 서버 설정
         const firebaseConfig = {
             apiKey: "AIzaSyBr6fn0z5WiCb8r0ho9dRM_rcJFncEZfdg",
             authDomain: "click-396e8.firebaseapp.com",
@@ -92,43 +89,50 @@
         const scoreDisplay = document.getElementById('scoreDisplay');
         const userInfo = document.getElementById('userInfo');
         const rankList = document.getElementById('rankList');
-        const rankPanel = document.getElementById('rankPanel');
+
+        // [핵심] 리다이렉트 결과 처리 (로그인하고 돌아왔을 때 정보를 받아옴)
+        getRedirectResult(auth).catch((error) => {
+            console.error("로그인 결과 처리 중 오류:", error);
+            userInfo.innerText = "로그인 오류가 발생했습니다.";
+        });
+
+        // 유저 데이터 불러오기 함수
+        async function loadUserData(user) {
+            const userRef = doc(db, "clicker", user.uid);
+            const userSnap = await getDoc(userRef);
+            if (userSnap.exists()) {
+                scoreDisplay.innerText = userSnap.data().clicks.toLocaleString();
+            }
+        }
 
         // 로그인 상태 감시
-        onAuthStateChanged(auth, async (user) => {
+        onAuthStateChanged(auth, (user) => {
             if (user) {
                 currentUser = user;
                 userInfo.innerText = `${user.displayName}님 접속 중`;
-                
-                // 기존 데이터 가져오기
-                const userRef = doc(db, "clicker", user.uid);
-                const userSnap = await getDoc(userRef);
-                if (userSnap.exists()) {
-                    scoreDisplay.innerText = userSnap.data().clicks.toLocaleString();
-                }
+                loadUserData(user);
             } else {
                 currentUser = null;
                 userInfo.innerText = "로그인이 필요합니다.";
+                scoreDisplay.innerText = "0";
             }
         });
 
         // 클릭 버튼 이벤트
-        mainBtn.addEventListener('click', async () => {
+        mainBtn.addEventListener('click', () => {
             if (!currentUser) {
-                // 로그인 안되어있으면 구글 로그인 화면으로 이동
                 signInWithRedirect(auth, provider);
                 return;
             }
 
-            // 점수 서버 전송
             const userRef = doc(db, "clicker", currentUser.uid);
-            await setDoc(userRef, {
+            setDoc(userRef, {
                 name: currentUser.displayName,
                 clicks: increment(1)
             }, { merge: true });
         });
 
-        // 실시간 랭킹 감시 (리스트 자동 업데이트)
+        // 실시간 랭킹 업데이트
         const q = query(collection(db, "clicker"), orderBy("clicks", "desc"), limit(10));
         onSnapshot(q, (snapshot) => {
             let html = "";
@@ -142,7 +146,6 @@
                         <b>${data.clicks.toLocaleString()}</b>
                     </div>`;
                 
-                // 내 점수 실시간 업데이트
                 if (currentUser && doc.id === currentUser.uid) {
                     scoreDisplay.innerText = data.clicks.toLocaleString();
                 }
@@ -151,9 +154,8 @@
             rankList.innerHTML = html;
         });
 
-        // 하단 랭킹창 터치 동작
         document.getElementById('rankHeader').addEventListener('click', () => {
-            rankPanel.classList.toggle('active');
+            document.getElementById('rankPanel').classList.toggle('active');
         });
     </script>
 </body>
