@@ -67,7 +67,7 @@
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
         import { getFirestore, doc, setDoc, increment, onSnapshot, collection, query, orderBy, limit, getDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
-        import { getAuth, signInWithRedirect, GoogleAuthProvider, onAuthStateChanged, getRedirectResult } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+        import { getAuth, signInWithPopup, GoogleAuthProvider, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyBr6fn0z5WiCb8r0ho9dRM_rcJFncEZfdg",
@@ -90,27 +90,21 @@
         const userInfo = document.getElementById('userInfo');
         const rankList = document.getElementById('rankList');
 
-        // [핵심] 리다이렉트 결과 처리 (로그인하고 돌아왔을 때 정보를 받아옴)
-        getRedirectResult(auth).catch((error) => {
-            console.error("로그인 결과 처리 중 오류:", error);
-            userInfo.innerText = "로그인 오류가 발생했습니다.";
-        });
-
-        // 유저 데이터 불러오기 함수
-        async function loadUserData(user) {
-            const userRef = doc(db, "clicker", user.uid);
+        // 점수 불러오기 함수
+        async function fetchScore(uid) {
+            const userRef = doc(db, "clicker", uid);
             const userSnap = await getDoc(userRef);
             if (userSnap.exists()) {
                 scoreDisplay.innerText = userSnap.data().clicks.toLocaleString();
             }
         }
 
-        // 로그인 상태 감시
+        // 로그인 상태 체크
         onAuthStateChanged(auth, (user) => {
             if (user) {
                 currentUser = user;
                 userInfo.innerText = `${user.displayName}님 접속 중`;
-                loadUserData(user);
+                fetchScore(user.uid);
             } else {
                 currentUser = null;
                 userInfo.innerText = "로그인이 필요합니다.";
@@ -118,21 +112,25 @@
             }
         });
 
-        // 클릭 버튼 이벤트
-        mainBtn.addEventListener('click', () => {
+        // 클릭 이벤트
+        mainBtn.addEventListener('click', async () => {
             if (!currentUser) {
-                signInWithRedirect(auth, provider);
+                try {
+                    await signInWithPopup(auth, provider);
+                } catch (error) {
+                    console.error("로그인 실패:", error);
+                }
                 return;
             }
 
             const userRef = doc(db, "clicker", currentUser.uid);
-            setDoc(userRef, {
+            await setDoc(userRef, {
                 name: currentUser.displayName,
                 clicks: increment(1)
             }, { merge: true });
         });
 
-        // 실시간 랭킹 업데이트
+        // 랭킹 리스트
         const q = query(collection(db, "clicker"), orderBy("clicks", "desc"), limit(10));
         onSnapshot(q, (snapshot) => {
             let html = "";
@@ -140,12 +138,7 @@
             snapshot.forEach((doc) => {
                 const data = doc.data();
                 const isMe = (currentUser && doc.id === currentUser.uid) ? " (나)" : "";
-                html += `
-                    <div class="rank-item">
-                        <span>${i}. ${data.name}${isMe}</span>
-                        <b>${data.clicks.toLocaleString()}</b>
-                    </div>`;
-                
+                html += `<div class="rank-item"><span>${i}. ${data.name}${isMe}</span><b>${data.clicks.toLocaleString()}</b></div>`;
                 if (currentUser && doc.id === currentUser.uid) {
                     scoreDisplay.innerText = data.clicks.toLocaleString();
                 }
