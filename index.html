@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="ko">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
@@ -16,12 +16,24 @@
             font-family: 'Pretendard', -apple-system, sans-serif; overflow: hidden;
             display: flex; flex-direction: column; align-items: center; height: 100vh;
         }
+        
+        /* Logout Button (Top Right) */
+        #logoutBtn {
+            position: absolute; top: 20px; right: 20px;
+            background: none; border: 1px solid rgba(255,255,255,0.3);
+            color: rgba(255,255,255,0.6); padding: 8px 15px; border-radius: 20px;
+            font-size: 0.8rem; cursor: pointer; display: none; /* Hidden by default */
+            transition: 0.2s;
+        }
+        #logoutBtn:hover { background: rgba(255,255,255,0.1); color: #fff; }
+
         .main-container {
             flex: 1; display: flex; flex-direction: column; justify-content: flex-start;
             align-items: center; width: 100%; max-width: 500px; padding-top: 15vh;
         }
-        h1 { margin: 0 0 10px 0; font-weight: 300; letter-spacing: 4px; font-size: 1.2rem; color: rgba(255,255,255,0.6); }
+        h1 { margin: 0 0 10px 0; font-weight: 300; letter-spacing: 4px; font-size: 1.2rem; color: rgba(255,255,255,0.4); }
         #scoreDisplay { font-size: 3.5rem; font-weight: bold; margin: 0 0 30px 0; color: var(--main-color); }
+        
         .click-btn {
             width: 220px; height: 220px; border-radius: 50%; background-color: var(--main-color);
             border: 10px solid rgba(255, 255, 255, 0.1); color: white; font-size: 28px;
@@ -31,6 +43,7 @@
         .click-btn:active { transform: scale(0.90); }
         .user-info { margin-top: 20px; font-size: 0.9rem; color: #888; text-align: center; }
 
+        /* Leaderboard Panel */
         .rank-panel {
             position: fixed; bottom: 0; left: 50%; transform: translateX(-50%) translateY(calc(100% - 70px));
             width: 100%; max-width: 500px; height: 75vh; background-color: var(--rank-bg);
@@ -40,7 +53,7 @@
         .rank-panel.active { transform: translateX(-50%) translateY(0); }
         .rank-header { height: 70px; display: flex; flex-direction: column; justify-content: center; align-items: center; cursor: pointer; }
         .handle { width: 40px; height: 4px; background-color: #444; border-radius: 10px; margin-bottom: 10px; }
-        .rank-title { font-size: 0.9rem; font-weight: bold; color: #aaa; letter-spacing: 1px; }
+        .rank-title { font-size: 0.8rem; font-weight: bold; color: #666; letter-spacing: 2px; }
         .rank-content { padding: 0 30px 30px 30px; height: calc(100% - 100px); overflow-y: auto; }
         .rank-item { display: flex; justify-content: space-between; padding: 20px 0; border-bottom: 1px solid rgba(255,255,255,0.05); }
         .rank-item span { color: #ccc; }
@@ -49,11 +62,13 @@
 </head>
 <body>
 
+    <button id="logoutBtn">LOGOUT</button>
+
     <div class="main-container">
         <h1>CLICKER</h1>
         <p id="scoreDisplay">0</p>
         <button class="click-btn" id="mainBtn">CLICK</button>
-        <div id="userInfo" class="user-info">로그인 확인 중...</div>
+        <div id="userInfo" class="user-info">Checking status...</div>
     </div>
 
     <div class="rank-panel" id="rankPanel">
@@ -67,7 +82,7 @@
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
         import { getFirestore, doc, setDoc, increment, onSnapshot, collection, query, orderBy, limit, getDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
-        import { getAuth, signInWithPopup, GoogleAuthProvider, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+        import { getAuth, signInWithPopup, GoogleAuthProvider, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyBr6fn0z5WiCb8r0ho9dRM_rcJFncEZfdg",
@@ -89,8 +104,9 @@
         const scoreDisplay = document.getElementById('scoreDisplay');
         const userInfo = document.getElementById('userInfo');
         const rankList = document.getElementById('rankList');
+        const logoutBtn = document.getElementById('logoutBtn');
 
-        // 점수 불러오기 함수
+        // Fetch score from DB
         async function fetchScore(uid) {
             const userRef = doc(db, "clicker", uid);
             const userSnap = await getDoc(userRef);
@@ -99,26 +115,28 @@
             }
         }
 
-        // 로그인 상태 체크
+        // Auth state observer
         onAuthStateChanged(auth, (user) => {
             if (user) {
                 currentUser = user;
-                userInfo.innerText = `${user.displayName}님 접속 중`;
+                userInfo.innerText = `Logged in as ${user.displayName}`;
+                logoutBtn.style.display = "block"; // Show logout
                 fetchScore(user.uid);
             } else {
                 currentUser = null;
-                userInfo.innerText = "로그인이 필요합니다.";
+                userInfo.innerText = "Login required to start";
+                logoutBtn.style.display = "none"; // Hide logout
                 scoreDisplay.innerText = "0";
             }
         });
 
-        // 클릭 이벤트
+        // Click Event
         mainBtn.addEventListener('click', async () => {
             if (!currentUser) {
                 try {
                     await signInWithPopup(auth, provider);
                 } catch (error) {
-                    console.error("로그인 실패:", error);
+                    console.error("Login failed:", error);
                 }
                 return;
             }
@@ -130,14 +148,21 @@
             }, { merge: true });
         });
 
-        // 랭킹 리스트
+        // Logout Event
+        logoutBtn.addEventListener('click', () => {
+            if(confirm("Do you want to logout?")) {
+                signOut(auth);
+            }
+        });
+
+        // Leaderboard Real-time Update
         const q = query(collection(db, "clicker"), orderBy("clicks", "desc"), limit(10));
         onSnapshot(q, (snapshot) => {
             let html = "";
             let i = 1;
             snapshot.forEach((doc) => {
                 const data = doc.data();
-                const isMe = (currentUser && doc.id === currentUser.uid) ? " (나)" : "";
+                const isMe = (currentUser && doc.id === currentUser.uid) ? " (Me)" : "";
                 html += `<div class="rank-item"><span>${i}. ${data.name}${isMe}</span><b>${data.clicks.toLocaleString()}</b></div>`;
                 if (currentUser && doc.id === currentUser.uid) {
                     scoreDisplay.innerText = data.clicks.toLocaleString();
