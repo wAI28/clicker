@@ -22,6 +22,7 @@
             font-family: monospace; font-size: 1.1rem; color: rgba(255,255,255,0.7);
             line-height: 1.4; pointer-events: none; z-index: 20;
         }
+
         #logoutBtn {
             position: absolute; top: 20px; right: 20px;
             background: none; border: 1px solid rgba(255,255,255,0.3);
@@ -78,7 +79,7 @@
 <body>
 
     <div id="statsDisplay">
-        CPS: <span id="currentCPS">0.0</span><br>
+        CPS: <span id="currentCPS">0</span><br>
         MAX: <span id="maxCPS">-</span>
     </div>
 
@@ -153,11 +154,12 @@
             }
         }
 
+        // CPS Logic (정수형으로 변경)
         setInterval(() => {
             const now = Date.now();
             clickHistory = clickHistory.filter(t => now - t < 1000);
-            const cps = clickHistory.length;
-            currentCPSEl.innerText = cps.toFixed(1);
+            const cps = clickHistory.length; // 소수점 없이 정수로 취급
+            currentCPSEl.innerText = cps;
 
             if (cps > myMaxCPS && currentUser) {
                 myMaxCPS = cps;
@@ -166,18 +168,16 @@
             }
         }, 100);
 
-        // 내 전용 점수 실시간 감시 (오류 해결의 핵심)
         let unsubscribeMyScore = null;
 
         onAuthStateChanged(auth, async (user) => {
-            if (unsubscribeMyScore) unsubscribeMyScore(); // 이전 감시 해제
+            if (unsubscribeMyScore) unsubscribeMyScore();
 
             if (user) {
                 currentUser = user;
                 document.getElementById('userInfo').innerText = `Logged in as ${user.displayName}`;
                 document.getElementById('logoutBtn').style.display = "block";
                 
-                // 내 문서만 따로 실시간 감시하여 scoreDisplay 업데이트
                 unsubscribeMyScore = onSnapshot(doc(db, "clicker", user.uid), (doc) => {
                     if (doc.exists()) {
                         const data = doc.data();
@@ -213,7 +213,6 @@
 
         document.getElementById('logoutBtn').onclick = () => { if(confirm("Logout?")) signOut(auth); };
 
-        // 리더보드 감시 (상위 10명)
         onSnapshot(query(collection(db, "clicker"), orderBy("clicks", "desc"), limit(10)), (snapshot) => {
             let html = "";
             let rank = 1;
