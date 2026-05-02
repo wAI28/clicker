@@ -17,7 +17,6 @@
             display: flex; flex-direction: column; align-items: center; height: 100vh;
         }
         
-        /* Stats Display (Top Left) */
         #statsDisplay {
             position: absolute; top: 20px; left: 20px;
             font-family: monospace; font-size: 1.1rem; color: rgba(255,255,255,0.7);
@@ -40,7 +39,7 @@
         h1 { margin: 0 0 10px 0; font-weight: 300; letter-spacing: 4px; font-size: 1.2rem; color: rgba(255,255,255,0.3); }
         #scoreDisplay { font-size: 3.5rem; font-weight: bold; margin: 0 0 30px 0; color: var(--main-color); }
         
-        /* Optimized Particles */
+        /* Particle Style (Color kept as --main-color) */
         .particle {
             position: fixed; border-radius: 50%; background-color: var(--main-color);
             pointer-events: none; z-index: 4;
@@ -132,28 +131,38 @@
         const maxCPSEl = document.getElementById('maxCPS');
         const rankList = document.getElementById('rankList');
 
-        // Particle Logic (Fixed & Faster)
-        function spawnParticles(x, y) {
-            for (let i = 0; i < 6; i++) {
+        // Particle Logic (Outer Burst)
+        function spawnParticles() {
+            const rect = mainBtn.getBoundingClientRect();
+            const centerX = rect.left + rect.width / 2;
+            const centerY = rect.top + rect.height / 2;
+            const radius = rect.width / 2;
+
+            for (let i = 0; i < 12; i++) {
                 const p = document.createElement('div');
                 p.className = 'particle';
                 const size = Math.random() * 6 + 4;
                 p.style.width = size + 'px';
                 p.style.height = size + 'px';
-                p.style.left = x + 'px';
-                p.style.top = y + 'px';
 
                 const angle = Math.random() * Math.PI * 2;
-                const dist = Math.random() * 60 + 30;
-                p.style.setProperty('--tx', Math.cos(angle) * dist + 'px');
-                p.style.setProperty('--ty', Math.sin(angle) * dist + 'px');
+                // Start exactly at the edge
+                const startX = centerX + Math.cos(angle) * radius;
+                const startY = centerY + Math.sin(angle) * radius;
+
+                p.style.left = startX + 'px';
+                p.style.top = startY + 'px';
+
+                const burstDist = Math.random() * 80 + 40;
+                p.style.setProperty('--tx', Math.cos(angle) * burstDist + 'px');
+                p.style.setProperty('--ty', Math.sin(angle) * burstDist + 'px');
 
                 document.body.appendChild(p);
                 setTimeout(() => p.remove(), 500);
             }
         }
 
-        // CPS Logic (1 sec window)
+        // CPS Logic
         setInterval(() => {
             const now = Date.now();
             clickHistory = clickHistory.filter(t => now - t < 1000);
@@ -163,7 +172,6 @@
             if (cps > myMaxCPS && currentUser) {
                 myMaxCPS = cps;
                 maxCPSEl.innerText = myMaxCPS;
-                // Update Max CPS in Background
                 setDoc(doc(db, "clicker", currentUser.uid), { maxCPS: myMaxCPS }, { merge: true });
             }
         }, 100);
@@ -173,7 +181,6 @@
                 currentUser = user;
                 document.getElementById('userInfo').innerText = `Logged in as ${user.displayName}`;
                 document.getElementById('logoutBtn').style.display = "block";
-                
                 const snap = await getDoc(doc(db, "clicker", user.uid));
                 if (snap.exists()) {
                     myMaxCPS = snap.data().maxCPS || 0;
@@ -190,9 +197,9 @@
             }
         });
 
-        mainBtn.addEventListener('click', (e) => {
+        mainBtn.addEventListener('click', () => {
             clickHistory.push(Date.now());
-            spawnParticles(e.clientX, e.clientY);
+            spawnParticles();
 
             if (!currentUser) {
                 signInWithPopup(auth, provider);
@@ -207,21 +214,17 @@
 
         document.getElementById('logoutBtn').onclick = () => { if(confirm("Logout?")) signOut(auth); };
 
-        // Leaderboard Update
         const q = query(collection(db, "clicker"), orderBy("clicks", "desc"), limit(10));
         onSnapshot(q, (snapshot) => {
             let html = "";
             let rank = 1;
             snapshot.forEach((doc) => {
                 const data = doc.data();
-                const displayCPS = data.maxCPS ? data.maxCPS : "-";
-                const isMe = (currentUser && doc.id === currentUser.uid) ? " (Me)" : "";
-                
                 html += `
                     <div class="rank-item">
                         <div class="rank-info">
-                            <span class="rank-name">${rank}. ${data.name}${isMe}</span>
-                            <span class="rank-cps">Best CPS: ${displayCPS}</span>
+                            <span class="rank-name">${rank}. ${data.name}${currentUser && doc.id === currentUser.uid ? " (Me)" : ""}</span>
+                            <span class="rank-cps">Best CPS: ${data.maxCPS || "-"}</span>
                         </div>
                         <b class="rank-clicks">${(data.clicks || 0).toLocaleString()}</b>
                     </div>`;
