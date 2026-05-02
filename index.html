@@ -1,1 +1,165 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Clicker</title>
+    <style>
+        :root {
+            --bg-color: #1a1a1a;
+            --main-color: #ff4757;
+            --rank-bg: #2d2d2d;
+            --text-color: #ffffff;
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            font-family: 'Pretendard', -apple-system, sans-serif;
+            overflow: hidden; /* 랭킹창 슬라이드를 위해 전체 스크롤 방지 */
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            height: 100vh;
+        }
+
+        /* 메인 영역 (PC 배려를 위해 가로폭 제한) */
+        .main-container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            width: 100%;
+            max-width: 500px;
+        }
+
+        h1 { margin-bottom: 50px; font-weight: 300; letter-spacing: 2px; }
+
+        /* 중앙 클릭 버튼 */
+        .click-btn {
+            width: 200px;
+            height: 200px;
+            border-radius: 50%;
+            background-color: var(--main-color);
+            border: 8px solid rgba(255, 255, 255, 0.1);
+            color: white;
+            font-size: 24px;
+            font-weight: bold;
+            cursor: pointer;
+            box-shadow: 0 0 30px rgba(255, 71, 87, 0.4);
+            transition: transform 0.1s, box-shadow 0.1s;
+            outline: none;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        .click-btn:active {
+            transform: scale(0.92);
+            box-shadow: 0 0 10px rgba(255, 71, 87, 0.2);
+        }
+
+        /* 랭킹창 (슬라이딩 패널) */
+        .rank-panel {
+            position: fixed;
+            bottom: 0;
+            left: 50%;
+            transform: translateX(-50%) translateY(calc(100% - 60px)); /* 기본은 헤더만 보이게 */
+            width: 100%;
+            max-width: 500px;
+            height: 70vh;
+            background-color: var(--rank-bg);
+            border-radius: 25px 25px 0 0;
+            box-shadow: 0 -10px 30px rgba(0,0,0,0.5);
+            transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.1);
+            z-index: 10;
+        }
+
+        /* 랭킹창 활성화 시 */
+        .rank-panel.active {
+            transform: translateX(-50%) translateY(0);
+        }
+
+        /* 랭킹창 헤더 (터치 영역) */
+        .rank-header {
+            height: 60px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            cursor: pointer;
+            border-bottom: 1px solid rgba(255,255,255,0.05);
+        }
+
+        .handle {
+            width: 40px;
+            height: 5px;
+            background-color: #555;
+            border-radius: 10px;
+            position: absolute;
+            top: 15px;
+        }
+
+        .rank-title { font-weight: bold; margin-top: 10px; }
+
+        /* 랭킹 리스트 아이템 */
+        .rank-content {
+            padding: 20px;
+            height: calc(100% - 80px);
+            overflow-y: auto;
+        }
+
+        .rank-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 15px 10px;
+            border-bottom: 1px solid rgba(255,255,255,0.05);
+        }
+
+        .rank-item:last-child { border: none; }
+    </style>
+</head>
+<body>
+
+    <div class="main-container">
+        <h1>CLICKER</h1>
+        <button class="click-btn" id="mainBtn">CLICK!</button>
+        <p id="scoreDisplay" style="font-size: 1.5rem; margin-top: 20px;">0</p>
+    </div>
+
+    <div class="rank-panel" id="rankPanel">
+        <div class="rank-header" id="rankHeader">
+            <div class="handle"></div>
+            <div class="rank-title">Leaderboard (Tap to View)</div>
+        </div>
+        <div class="rank-content">
+            <div class="rank-item"><span>1. 태훈</span><b>1,250</b></div>
+            <div class="rank-item"><span>2. Player1</span><b>980</b></div>
+            <div class="rank-item"><span>3. Player2</span><b>750</b></div>
+            <div class="rank-item"><span>4. Player3</span><b>500</b></div>
+            <div class="rank-item"><span>5. Player4</span><b>320</b></div>
+            <p style="text-align: center; color: #777; margin-top: 20px;">실시간 랭킹이 표시됩니다.</p>
+        </div>
+    </div>
+
+    <script>
+        const rankPanel = document.getElementById('rankPanel');
+        const rankHeader = document.getElementById('rankHeader');
+        const mainBtn = document.getElementById('mainBtn');
+        const scoreDisplay = document.getElementById('scoreDisplay');
+        let count = 0;
+
+        // 랭킹창 올리고 내리기 동작
+        rankHeader.addEventListener('click', () => {
+            rankPanel.classList.toggle('active');
+        });
+
+        // 클릭 효과만 살짝 구현
+        mainBtn.addEventListener('click', () => {
+            count++;
+            scoreDisplay.innerText = count.toLocaleString();
+        });
+    </script>
+</body>
+</html>
 
