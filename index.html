@@ -11,126 +11,39 @@
             --rank-bg: #2d2d2d;
             --text-color: #ffffff;
         }
-
         body {
-            margin: 0;
-            padding: 0;
-            background-color: var(--bg-color);
-            color: var(--text-color);
-            font-family: 'Pretendard', -apple-system, sans-serif;
-            overflow: hidden;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            height: 100vh;
+            margin: 0; padding: 0; background-color: var(--bg-color); color: var(--text-color);
+            font-family: 'Pretendard', -apple-system, sans-serif; overflow: hidden;
+            display: flex; flex-direction: column; align-items: center; height: 100vh;
         }
-
-        /* 메인 컨테이너: 위쪽으로 더 치우치게 조정 */
         .main-container {
-            flex: 1;
-            display: flex;
-            flex-direction: column;
-            justify-content: flex-start; /* 중앙이 아닌 위쪽부터 배치 */
-            align-items: center;
-            width: 100%;
-            max-width: 500px;
-            padding-top: 15vh; /* 화면 높이의 15%만큼 위에서 띄움 */
+            flex: 1; display: flex; flex-direction: column; justify-content: flex-start;
+            align-items: center; width: 100%; max-width: 500px; padding-top: 15vh;
         }
-
-        h1 { 
-            margin: 0 0 10px 0; 
-            font-weight: 300; 
-            letter-spacing: 4px; 
-            font-size: 1.2rem;
-            color: rgba(255,255,255,0.6);
-        }
-
-        #scoreDisplay { 
-            font-size: 3rem; 
-            font-weight: bold; 
-            margin: 0 0 40px 0; 
-            color: var(--main-color);
-        }
-
-        /* 중앙 클릭 버튼 */
+        h1 { margin: 0 0 10px 0; font-weight: 300; letter-spacing: 4px; font-size: 1.2rem; color: rgba(255,255,255,0.6); }
+        #scoreDisplay { font-size: 3.5rem; font-weight: bold; margin: 0 0 30px 0; color: var(--main-color); }
         .click-btn {
-            width: 220px;
-            height: 220px;
-            border-radius: 50%;
-            background-color: var(--main-color);
-            border: 10px solid rgba(255, 255, 255, 0.1);
-            color: white;
-            font-size: 28px;
-            font-weight: 900;
-            cursor: pointer;
-            box-shadow: 0 15px 35px rgba(255, 71, 87, 0.4);
-            transition: transform 0.1s, box-shadow 0.1s;
-            outline: none;
-            -webkit-tap-highlight-color: transparent;
+            width: 220px; height: 220px; border-radius: 50%; background-color: var(--main-color);
+            border: 10px solid rgba(255, 255, 255, 0.1); color: white; font-size: 28px;
+            font-weight: 900; cursor: pointer; box-shadow: 0 15px 35px rgba(255, 71, 87, 0.4);
+            transition: transform 0.1s; outline: none; -webkit-tap-highlight-color: transparent;
         }
+        .click-btn:active { transform: scale(0.90); }
+        .user-info { margin-top: 20px; font-size: 0.9rem; color: #888; }
 
-        .click-btn:active {
-            transform: scale(0.90);
-            box-shadow: 0 5px 15px rgba(255, 71, 87, 0.2);
-        }
-
-        /* 랭킹창 (기존과 동일하지만 디자인 살짝 다듬음) */
+        /* 리더보드 슬라이딩 패널 */
         .rank-panel {
-            position: fixed;
-            bottom: 0;
-            left: 50%;
-            transform: translateX(-50%) translateY(calc(100% - 70px));
-            width: 100%;
-            max-width: 500px;
-            height: 75vh;
-            background-color: var(--rank-bg);
-            border-radius: 30px 30px 0 0;
-            box-shadow: 0 -15px 40px rgba(0,0,0,0.6);
-            transition: transform 0.5s cubic-bezier(0.22, 1, 0.36, 1);
-            z-index: 10;
+            position: fixed; bottom: 0; left: 50%; transform: translateX(-50%) translateY(calc(100% - 70px));
+            width: 100%; max-width: 500px; height: 75vh; background-color: var(--rank-bg);
+            border-radius: 30px 30px 0 0; box-shadow: 0 -15px 40px rgba(0,0,0,0.6);
+            transition: transform 0.5s cubic-bezier(0.22, 1, 0.36, 1); z-index: 10;
         }
-
-        .rank-panel.active {
-            transform: translateX(-50%) translateY(0);
-        }
-
-        .rank-header {
-            height: 70px;
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            cursor: pointer;
-        }
-
-        .handle {
-            width: 40px;
-            height: 4px;
-            background-color: #444;
-            border-radius: 10px;
-            margin-bottom: 10px;
-        }
-
-        .rank-title { 
-            font-size: 0.9rem; 
-            font-weight: bold; 
-            color: #aaa;
-            letter-spacing: 1px;
-        }
-
-        .rank-content {
-            padding: 0 30px 30px 30px;
-            height: calc(100% - 100px);
-            overflow-y: auto;
-        }
-
-        .rank-item {
-            display: flex;
-            justify-content: space-between;
-            padding: 20px 0;
-            border-bottom: 1px solid rgba(255,255,255,0.05);
-        }
-
+        .rank-panel.active { transform: translateX(-50%) translateY(0); }
+        .rank-header { height: 70px; display: flex; flex-direction: column; justify-content: center; align-items: center; cursor: pointer; }
+        .handle { width: 40px; height: 4px; background-color: #444; border-radius: 10px; margin-bottom: 10px; }
+        .rank-title { font-size: 0.9rem; font-weight: bold; color: #aaa; letter-spacing: 1px; }
+        .rank-content { padding: 0 30px 30px 30px; height: calc(100% - 100px); overflow-y: auto; }
+        .rank-item { display: flex; justify-content: space-between; padding: 20px 0; border-bottom: 1px solid rgba(255,255,255,0.05); }
         .rank-item span { color: #ccc; }
         .rank-item b { color: #fff; font-size: 1.1rem; }
     </style>
@@ -141,6 +54,7 @@
         <h1>CLICKER</h1>
         <p id="scoreDisplay">0</p>
         <button class="click-btn" id="mainBtn">CLICK</button>
+        <div id="userInfo" class="user-info">로그인이 필요합니다.</div>
     </div>
 
     <div class="rank-panel" id="rankPanel">
@@ -148,29 +62,104 @@
             <div class="handle"></div>
             <div class="rank-title">LEADERBOARD</div>
         </div>
-        <div class="rank-content">
-            <div class="rank-item"><span>1. 태훈</span><b>1,250</b></div>
-            <div class="rank-item"><span>2. Player1</span><b>980</b></div>
-            <div class="rank-item"><span>3. Player2</span><b>750</b></div>
-            <div class="rank-item"><span>4. Player3</span><b>500</b></div>
-            <div class="rank-item"><span>5. Player4</span><b>320</b></div>
-        </div>
+        <div class="rank-content" id="rankList">
+            </div>
     </div>
 
-    <script>
-        const rankPanel = document.getElementById('rankPanel');
-        const rankHeader = document.getElementById('rankHeader');
+    <script type="module">
+        // Firebase 라이브러리 임포트
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+        import { getFirestore, doc, setDoc, increment, onSnapshot, collection, query, orderBy, limit, getDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+        import { getAuth, signInWithPopup, GoogleAuthProvider, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+
+        // 서버 설정 적용
+        const firebaseConfig = {
+            apiKey: "AIzaSyBr6fn0z5WiCb8r0ho9dRM_rcJFncEZfdg",
+            authDomain: "click-396e8.firebaseapp.com",
+            projectId: "click-396e8",
+            storageBucket: "click-396e8.firebasestorage.app",
+            messagingSenderId: "985576350437",
+            appId: "1:985576350437:web:ed65dbfff76cbdf5c2ea0c",
+            measurementId: "G-EGW2NT2WE6"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+        const auth = getAuth(app);
+        const provider = new GoogleAuthProvider();
+
+        let currentUser = null;
         const mainBtn = document.getElementById('mainBtn');
         const scoreDisplay = document.getElementById('scoreDisplay');
-        let count = 0;
+        const userInfo = document.getElementById('userInfo');
+        const rankList = document.getElementById('rankList');
+        const rankPanel = document.getElementById('rankPanel');
 
-        rankHeader.addEventListener('click', () => {
-            rankPanel.classList.toggle('active');
+        // 1. 로그인 상태 확인 및 데이터 불러오기
+        onAuthStateChanged(auth, async (user) => {
+            if (user) {
+                currentUser = user;
+                userInfo.innerText = `${user.displayName}님 환영합니다!`;
+                
+                // 기존 점수 불러오기
+                const userRef = doc(db, "clicker", user.uid);
+                const userSnap = await getDoc(userRef);
+                if (userSnap.exists()) {
+                    scoreDisplay.innerText = userSnap.data().clicks.toLocaleString();
+                }
+            } else {
+                currentUser = null;
+                userInfo.innerText = "로그인이 필요합니다 (클릭 시 로그인)";
+                scoreDisplay.innerText = "0";
+            }
         });
 
-        mainBtn.addEventListener('click', () => {
-            count++;
-            scoreDisplay.innerText = count.toLocaleString();
+        // 2. 버튼 클릭 이벤트 (로그인 및 점수 업데이트)
+        mainBtn.addEventListener('click', async () => {
+            if (!currentUser) {
+                // 로그인이 안 되어 있으면 팝업 띄우기
+                try {
+                    await signInWithPopup(auth, provider);
+                } catch (error) {
+                    console.error("로그인 실패:", error);
+                }
+                return;
+            }
+
+            // 점수 서버 전송
+            const userRef = doc(db, "clicker", currentUser.uid);
+            await setDoc(userRef, {
+                name: currentUser.displayName,
+                clicks: increment(1)
+            }, { merge: true });
+        });
+
+        // 3. 실시간 랭킹 연동
+        const q = query(collection(db, "clicker"), orderBy("clicks", "desc"), limit(10));
+        onSnapshot(q, (snapshot) => {
+            let html = "";
+            let i = 1;
+            snapshot.forEach((doc) => {
+                const data = doc.data();
+                const isMe = (currentUser && doc.id === currentUser.uid) ? " (나)" : "";
+                html += `
+                    <div class="rank-item">
+                        <span>${i}. ${data.name}${isMe}</span>
+                        <b>${data.clicks.toLocaleString()}</b>
+                    </div>`;
+                
+                // 내 점수 실시간 메인 표시 업데이트
+                if (currentUser && doc.id === currentUser.uid) {
+                    scoreDisplay.innerText = data.clicks.toLocaleString();
+                }
+                i++;
+            });
+            rankList.innerHTML = html;
+        });
+
+        // 4. 랭킹창 슬라이드 동작
+        document.getElementById('rankHeader').addEventListener('click', () => {
+            rankPanel.classList.toggle('active');
         });
     </script>
 </body>
