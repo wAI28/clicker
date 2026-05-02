@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Clicker</title>
+    <title>Clicker Pro</title>
     <style>
         :root {
             --bg-color: #1a1a1a;
@@ -17,67 +17,78 @@
             display: flex; flex-direction: column; align-items: center; height: 100vh;
         }
         
+        /* Stats Display (Top Left) */
+        #statsDisplay {
+            position: absolute; top: 20px; left: 20px;
+            font-family: monospace; font-size: 1.1rem; color: rgba(255,255,255,0.7);
+            line-height: 1.4; pointer-events: none; z-index: 20;
+        }
+        #statsDisplay b { color: var(--main-color); }
+
         #logoutBtn {
             position: absolute; top: 20px; right: 20px;
             background: none; border: 1px solid rgba(255,255,255,0.3);
             color: rgba(255,255,255,0.6); padding: 8px 15px; border-radius: 20px;
             font-size: 0.8rem; cursor: pointer; display: none; z-index: 20;
-            transition: 0.2s;
         }
-        #logoutBtn:hover { background: rgba(255,255,255,0.1); color: #fff; }
 
         .main-container {
             flex: 1; display: flex; flex-direction: column; justify-content: flex-start;
             align-items: center; width: 100%; max-width: 500px; padding-top: 15vh;
-            position: relative; /* For particles */
+            position: relative;
         }
-        h1 { margin: 0 0 10px 0; font-weight: 300; letter-spacing: 4px; font-size: 1.2rem; color: rgba(255,255,255,0.4); }
+        h1 { margin: 0 0 10px 0; font-weight: 300; letter-spacing: 4px; font-size: 1.2rem; color: rgba(255,255,255,0.3); }
         #scoreDisplay { font-size: 3.5rem; font-weight: bold; margin: 0 0 30px 0; color: var(--main-color); }
         
-        /* Particle Style */
+        /* Optimized Particles */
         .particle {
-            position: absolute; border-radius: 50%;
-            background-color: var(--main-color);
-            pointer-events: none; opacity: 1;
-            transform: translate(-50%, -50%);
-            animation: explode 0.6s ease-out forwards;
+            position: fixed; border-radius: 50%; background-color: var(--main-color);
+            pointer-events: none; z-index: 4;
+            animation: explode 0.5s ease-out forwards;
         }
         @keyframes explode {
             0% { transform: translate(-50%, -50%) scale(1); opacity: 1; }
-            100% { transform: translate(var(--tx), var(--ty)) scale(0); opacity: 0; }
+            100% { transform: translate(calc(-50% + var(--tx)), calc(-50% + var(--ty))) scale(0); opacity: 0; }
         }
 
         .click-btn {
             width: 220px; height: 220px; border-radius: 50%; background-color: var(--main-color);
             border: 10px solid rgba(255, 255, 255, 0.1); color: white; font-size: 28px;
             font-weight: 900; cursor: pointer; box-shadow: 0 15px 35px rgba(255, 71, 87, 0.4);
-            transition: transform 0.1s; outline: none; -webkit-tap-highlight-color: transparent;
+            transition: transform 0.05s; outline: none; -webkit-tap-highlight-color: transparent;
             z-index: 5;
         }
-        .click-btn:active { transform: scale(0.90); }
+        .click-btn:active { transform: scale(0.92); }
         .user-info { margin-top: 20px; font-size: 0.9rem; color: #888; text-align: center; }
 
         .rank-panel {
             position: fixed; bottom: 0; left: 50%; transform: translateX(-50%) translateY(calc(100% - 70px));
             width: 100%; max-width: 500px; height: 75vh; background-color: var(--rank-bg);
             border-radius: 30px 30px 0 0; box-shadow: 0 -15px 40px rgba(0,0,0,0.6);
-            transition: transform 0.5s cubic-bezier(0.22, 1, 0.36, 1); z-index: 10;
+            transition: transform 0.4s cubic-bezier(0.22, 1, 0.36, 1); z-index: 10;
         }
         .rank-panel.active { transform: translateX(-50%) translateY(0); }
         .rank-header { height: 70px; display: flex; flex-direction: column; justify-content: center; align-items: center; cursor: pointer; }
         .handle { width: 40px; height: 4px; background-color: #444; border-radius: 10px; margin-bottom: 10px; }
         .rank-title { font-size: 0.8rem; font-weight: bold; color: #666; letter-spacing: 2px; }
-        .rank-content { padding: 0 30px 30px 30px; height: calc(100% - 100px); overflow-y: auto; }
-        .rank-item { display: flex; justify-content: space-between; padding: 20px 0; border-bottom: 1px solid rgba(255,255,255,0.05); }
-        .rank-item span { color: #ccc; }
-        .rank-item b { color: #fff; font-size: 1.1rem; }
+        .rank-content { padding: 0 25px 30px 25px; height: calc(100% - 100px); overflow-y: auto; }
+        .rank-item { display: flex; align-items: center; justify-content: space-between; padding: 18px 0; border-bottom: 1px solid rgba(255,255,255,0.05); }
+        .rank-info { display: flex; flex-direction: column; gap: 4px; }
+        .rank-name { color: #ccc; font-size: 0.95rem; }
+        .rank-cps { color: #666; font-size: 0.75rem; font-family: monospace; }
+        .rank-clicks { color: #fff; font-size: 1.1rem; font-weight: bold; }
     </style>
 </head>
 <body>
 
+    <div id="statsDisplay">
+        CPS: <span id="currentCPS">0.0</span><br>
+        MAX: <span id="maxCPS">-</span>
+    </div>
+
     <button id="logoutBtn">LOGOUT</button>
 
-    <div class="main-container" id="mainContainer">
+    <div class="main-container">
         <h1>CLICKER</h1>
         <p id="scoreDisplay">0</p>
         <button class="click-btn" id="mainBtn">CLICK</button>
@@ -113,117 +124,113 @@
         const provider = new GoogleAuthProvider();
 
         let currentUser = null;
+        let myMaxCPS = 0;
+        let clickHistory = [];
         const mainBtn = document.getElementById('mainBtn');
         const scoreDisplay = document.getElementById('scoreDisplay');
-        const userInfo = document.getElementById('userInfo');
+        const currentCPSEl = document.getElementById('currentCPS');
+        const maxCPSEl = document.getElementById('maxCPS');
         const rankList = document.getElementById('rankList');
-        const logoutBtn = document.getElementById('logoutBtn');
-        const mainContainer = document.getElementById('mainContainer');
 
-        // 1. Setup Sound
-        const clickSound = new Audio('https://assets.mixkit.co/active_storage/sfx/2571/2571-preview.mp3'); // 경쾌한 톡 소리
-        clickSound.volume = 0.4;
+        // Particle Logic (Fixed & Faster)
+        function spawnParticles(x, y) {
+            for (let i = 0; i < 6; i++) {
+                const p = document.createElement('div');
+                p.className = 'particle';
+                const size = Math.random() * 6 + 4;
+                p.style.width = size + 'px';
+                p.style.height = size + 'px';
+                p.style.left = x + 'px';
+                p.style.top = y + 'px';
 
-        // 2. Setup Particle Function
-        function createParticle(x, y) {
-            for (let i = 0; i < 8; i++) { // 클릭당 8개 파티클
-                const particle = document.createElement('div');
-                particle.classList.add('particle');
-                mainContainer.appendChild(particle);
-
-                // 랜덤 크기 및 랜덤 위치(버튼 중앙 기준)
-                const size = Math.random() * 8 + 4; // 4~12px
-                particle.style.width = `${size}px`;
-                particle.style.height = `${size}px`;
-                particle.style.left = `${x}px`;
-                particle.style.top = `${y}px`;
-
-                // 랜덤 폭발 방향 및 거리
                 const angle = Math.random() * Math.PI * 2;
-                const distance = Math.random() * 80 + 40; // 40~120px
-                const tx = Math.cos(angle) * distance;
-                const ty = Math.sin(angle) * distance;
+                const dist = Math.random() * 60 + 30;
+                p.style.setProperty('--tx', Math.cos(angle) * dist + 'px');
+                p.style.setProperty('--ty', Math.sin(angle) * dist + 'px');
 
-                particle.style.setProperty('--tx', `${tx}px`);
-                particle.style.setProperty('--ty', `${ty}px`);
-
-                // 애니메이션 끝나면 파티클 제거
-                setTimeout(() => particle.remove(), 600);
+                document.body.appendChild(p);
+                setTimeout(() => p.remove(), 500);
             }
         }
 
-        async function fetchScore(uid) {
-            const userRef = doc(db, "clicker", uid);
-            const userSnap = await getDoc(userRef);
-            if (userSnap.exists()) {
-                scoreDisplay.innerText = userSnap.data().clicks.toLocaleString();
-            }
-        }
+        // CPS Logic (1 sec window)
+        setInterval(() => {
+            const now = Date.now();
+            clickHistory = clickHistory.filter(t => now - t < 1000);
+            const cps = clickHistory.length;
+            currentCPSEl.innerText = cps.toFixed(1);
 
-        onAuthStateChanged(auth, (user) => {
+            if (cps > myMaxCPS && currentUser) {
+                myMaxCPS = cps;
+                maxCPSEl.innerText = myMaxCPS;
+                // Update Max CPS in Background
+                setDoc(doc(db, "clicker", currentUser.uid), { maxCPS: myMaxCPS }, { merge: true });
+            }
+        }, 100);
+
+        onAuthStateChanged(auth, async (user) => {
             if (user) {
                 currentUser = user;
-                userInfo.innerText = `Logged in as ${user.displayName}`;
-                logoutBtn.style.display = "block";
-                fetchScore(user.uid);
+                document.getElementById('userInfo').innerText = `Logged in as ${user.displayName}`;
+                document.getElementById('logoutBtn').style.display = "block";
+                
+                const snap = await getDoc(doc(db, "clicker", user.uid));
+                if (snap.exists()) {
+                    myMaxCPS = snap.data().maxCPS || 0;
+                    maxCPSEl.innerText = myMaxCPS || "-";
+                    scoreDisplay.innerText = (snap.data().clicks || 0).toLocaleString();
+                }
             } else {
                 currentUser = null;
-                userInfo.innerText = "Login required to start";
-                logoutBtn.style.display = "none";
+                myMaxCPS = 0;
+                maxCPSEl.innerText = "-";
+                document.getElementById('userInfo').innerText = "Login required to start";
+                document.getElementById('logoutBtn').style.display = "none";
                 scoreDisplay.innerText = "0";
             }
         });
 
-        mainBtn.addEventListener('click', async (e) => {
-            // 소리 재생 (매 클릭마다 처음부터 재생되도록 설정)
-            clickSound.currentTime = 0; 
-            clickSound.play();
-
-            // 파티클 생성 (버튼 중앙 기준)
-            const rect = mainBtn.getBoundingClientRect();
-            const x = rect.left + rect.width / 2;
-            const y = rect.top + rect.height / 2;
-            createParticle(x, y);
+        mainBtn.addEventListener('click', (e) => {
+            clickHistory.push(Date.now());
+            spawnParticles(e.clientX, e.clientY);
 
             if (!currentUser) {
-                try {
-                    await signInWithPopup(auth, provider);
-                } catch (error) {
-                    console.error("Login failed:", error);
-                }
+                signInWithPopup(auth, provider);
                 return;
             }
 
-            const userRef = doc(db, "clicker", currentUser.uid);
-            await setDoc(userRef, {
+            setDoc(doc(db, "clicker", currentUser.uid), {
                 name: currentUser.displayName,
                 clicks: increment(1)
             }, { merge: true });
         });
 
-        logoutBtn.addEventListener('click', () => {
-            if(confirm("Do you want to logout?")) signOut(auth);
-        });
+        document.getElementById('logoutBtn').onclick = () => { if(confirm("Logout?")) signOut(auth); };
 
+        // Leaderboard Update
         const q = query(collection(db, "clicker"), orderBy("clicks", "desc"), limit(10));
         onSnapshot(q, (snapshot) => {
             let html = "";
-            let i = 1;
+            let rank = 1;
             snapshot.forEach((doc) => {
                 const data = doc.data();
+                const displayCPS = data.maxCPS ? data.maxCPS : "-";
                 const isMe = (currentUser && doc.id === currentUser.uid) ? " (Me)" : "";
-                html += `<div class="rank-item"><span>${i}. ${data.name}${isMe}</span><b>${data.clicks.toLocaleString()}</b></div>`;
-                if (currentUser && doc.id === currentUser.uid) {
-                    scoreDisplay.innerText = data.clicks.toLocaleString();
-                }
-                i++;
+                
+                html += `
+                    <div class="rank-item">
+                        <div class="rank-info">
+                            <span class="rank-name">${rank}. ${data.name}${isMe}</span>
+                            <span class="rank-cps">Best CPS: ${displayCPS}</span>
+                        </div>
+                        <b class="rank-clicks">${(data.clicks || 0).toLocaleString()}</b>
+                    </div>`;
+                rank++;
             });
             rankList.innerHTML = html;
         });
 
-        document.getElementById('rankHeader').addEventListener('click', () => {
-            document.getElementById('rankPanel').classList.toggle('active');
-        });
+        document.getElementById('rankHeader').onclick = () => document.getElementById('rankPanel').classList.toggle('active');
     </script>
 </body>
 </html>
