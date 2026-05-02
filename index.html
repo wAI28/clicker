@@ -10,7 +10,7 @@
             --main-color: #ff4757;
             --rank-bg: #2d2d2d;
             --text-color: #ffffff;
-            --my-rank-bg: #3d3d3d; /* 내 순위 표시용 배경색 */
+            --my-rank-bg: #3d3d3d;
         }
         body {
             margin: 0; padding: 0; background-color: var(--bg-color); color: var(--text-color);
@@ -18,12 +18,18 @@
             display: flex; flex-direction: column; align-items: center; height: 100vh;
         }
         
+        /* Saving Indicator (Top Center) */
+        #saveIndicator {
+            position: absolute; top: 20px; left: 50%; transform: translateX(-50%);
+            font-size: 0.8rem; font-weight: bold; color: var(--main-color);
+            letter-spacing: 2px; opacity: 0; transition: opacity 0.3s; z-index: 30;
+        }
+
         #statsDisplay {
             position: absolute; top: 20px; left: 20px;
             font-family: monospace; font-size: 1.1rem; color: rgba(255,255,255,0.7);
             line-height: 1.4; pointer-events: none; z-index: 20;
         }
-
         #logoutBtn {
             position: absolute; top: 20px; right: 20px;
             background: none; border: 1px solid rgba(255,255,255,0.3);
@@ -78,17 +84,15 @@
         .rank-cps { color: #666; font-size: 0.75rem; font-family: monospace; }
         .rank-clicks { color: #fff; font-size: 1.1rem; font-weight: bold; }
 
-        /* 내 순위 고정바 스타일 */
         .my-rank-sticky {
-            background-color: var(--my-rank-bg);
-            padding: 15px 25px;
-            border-top: 1px solid rgba(255, 71, 87, 0.3);
-            display: none; /* 로그인 전에는 숨김 */
-            flex-shrink: 0;
+            background-color: var(--my-rank-bg); padding: 15px 25px;
+            border-top: 1px solid rgba(255, 71, 87, 0.3); display: none; flex-shrink: 0;
         }
     </style>
 </head>
 <body>
+
+    <div id="saveIndicator">SAVING...</div>
 
     <div id="statsDisplay">
         CPS: <span id="currentCPS">0</span><br>
@@ -123,7 +127,7 @@
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-        import { getFirestore, doc, setDoc, increment, onSnapshot, collection, query, orderBy, limit, getDoc, getDocs } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+        import { getFirestore, doc, setDoc, onSnapshot, collection, query, orderBy, limit, getDoc, getDocs } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
         import { getAuth, signInWithPopup, GoogleAuthProvider, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
 
         const firebaseConfig = {
@@ -143,14 +147,19 @@
 
         let currentUser = null;
         let myMaxCPS = 0;
+        let localClicks = 0; // 서버에 보내기 전 임시 저장할 로컬 클릭수
+        let lastSyncClicks = 0; // 마지막으로 서버와 동기화된 클릭수
         let clickHistory = [];
+        let isSyncing = false;
+
         const mainBtn = document.getElementById('mainBtn');
         const scoreDisplay = document.getElementById('scoreDisplay');
         const currentCPSEl = document.getElementById('currentCPS');
         const maxCPSEl = document.getElementById('maxCPS');
         const rankList = document.getElementById('rankList');
-        const myRankSticky = document.getElementById('myRankSticky');
+        const saveIndicator = document.getElementById('saveIndicator');
 
+        // Particle Effect
         function spawnParticles() {
             const rect = mainBtn.getBoundingClientRect();
             const centerX = rect.left + rect.width / 2;
@@ -173,76 +182,89 @@
             }
         }
 
+        // CPS & Auto Max CPS Sync
         setInterval(() => {
             const now = Date.now();
             clickHistory = clickHistory.filter(t => now - t < 1000);
             const cps = clickHistory.length;
             currentCPSEl.innerText = cps;
-            if (cps > myMaxCPS && currentUser) {
+            if (cps > myMaxCPS) {
                 myMaxCPS = cps;
                 maxCPSEl.innerText = myMaxCPS;
-                setDoc(doc(db, "clicker", currentUser.uid), { maxCPS: myMaxCPS }, { merge: true });
             }
         }, 100);
 
-        let unsubscribeMyScore = null;
+        // --- 10초마다 서버 저장 (핵심!) ---
+        setInterval(async () => {
+            if (!currentUser || isSyncing) return;
+            
+            // 마지막 동기화 이후 클릭이 발생했을 때만 전송
+            if (localClicks > lastSyncClicks || myMaxCPS > 0) {
+                isSyncing = true;
+                saveIndicator.style.opacity = "1"; // "SAVING..." 표시
+                
+                try {
+                    await setDoc(doc(db, "clicker", currentUser.uid), {
+                        name: currentUser.displayName,
+                        clicks: localClicks,
+                        maxCPS: myMaxCPS
+                    }, { merge: true });
+                    
+                    lastSyncClicks = localClicks;
+                    console.log("Synced with Server");
+                } catch (e) {
+                    console.error("Sync failed", e);
+                } finally {
+                    setTimeout(() => {
+                        saveIndicator.style.opacity = "0";
+                        isSyncing = false;
+                    }, 1000);
+                }
+            }
+        }, 10000); // 10초 주기
 
         onAuthStateChanged(auth, async (user) => {
-            if (unsubscribeMyScore) unsubscribeMyScore();
             if (user) {
                 currentUser = user;
                 document.getElementById('userInfo').innerText = `Logged in as ${user.displayName}`;
                 document.getElementById('logoutBtn').style.display = "block";
-                myRankSticky.style.display = "block";
+                document.getElementById('myRankSticky').style.display = "block";
                 
-                unsubscribeMyScore = onSnapshot(doc(db, "clicker", user.uid), (doc) => {
-                    if (doc.exists()) {
-                        const data = doc.data();
-                        scoreDisplay.innerText = (data.clicks || 0).toLocaleString();
-                        myMaxCPS = data.maxCPS || 0;
-                        maxCPSEl.innerText = myMaxCPS || "-";
-                        // 하단 고정바 업데이트
-                        document.getElementById('myRankCPS').innerText = `Best CPS: ${myMaxCPS || "-"}`;
-                        document.getElementById('myRankScore').innerText = (data.clicks || 0).toLocaleString();
-                        updateMyRankPosition(data.clicks);
-                    }
-                });
+                // 처음 로그인 시 데이터 가져오기
+                const snap = await getDoc(doc(db, "clicker", user.uid));
+                if (snap.exists()) {
+                    localClicks = snap.data().clicks || 0;
+                    lastSyncClicks = localClicks;
+                    myMaxCPS = snap.data().maxCPS || 0;
+                    scoreDisplay.innerText = localClicks.toLocaleString();
+                    maxCPSEl.innerText = myMaxCPS;
+                }
             } else {
                 currentUser = null;
-                myMaxCPS = 0;
-                maxCPSEl.innerText = "-";
-                document.getElementById('userInfo').innerText = "Login required to start";
+                localClicks = 0;
                 document.getElementById('logoutBtn').style.display = "none";
-                myRankSticky.style.display = "none";
+                document.getElementById('myRankSticky').style.display = "none";
                 scoreDisplay.innerText = "0";
             }
         });
 
-        // 내 순위 계산 함수 (전체 인원 대비)
-        async function updateMyRankPosition(myClicks) {
-            if (!currentUser) return;
-            const q = query(collection(db, "clicker"));
-            const snapshot = await getDocs(q);
-            let rank = 1;
-            snapshot.forEach((doc) => {
-                if (doc.data().clicks > myClicks) rank++;
-            });
-            document.getElementById('myRankPos').innerText = `${rank}. ${currentUser.displayName} (Me)`;
-        }
-
         mainBtn.addEventListener('click', () => {
-            clickHistory.push(Date.now());
             spawnParticles();
-            if (!currentUser) { signInWithPopup(auth, provider); return; }
-            setDoc(doc(db, "clicker", currentUser.uid), {
-                name: currentUser.displayName,
-                clicks: increment(1)
-            }, { merge: true });
+            clickHistory.push(Date.now());
+            
+            if (!currentUser) {
+                signInWithPopup(auth, provider);
+                return;
+            }
+
+            // 로컬 숫자는 즉시 업데이트
+            localClicks++;
+            scoreDisplay.innerText = localClicks.toLocaleString();
+            document.getElementById('myRankScore').innerText = localClicks.toLocaleString();
         });
 
-        document.getElementById('logoutBtn').onclick = () => { if(confirm("Logout?")) signOut(auth); };
-
-        onSnapshot(query(collection(db, "clicker"), orderBy("clicks", "desc"), limit(10)), (snapshot) => {
+        // 리더보드 및 내 순위 갱신 (리더보드 변화 시 실시간)
+        onSnapshot(query(collection(db, "clicker"), orderBy("clicks", "desc"), limit(10)), async (snapshot) => {
             let html = "";
             let rank = 1;
             snapshot.forEach((doc) => {
@@ -258,8 +280,21 @@
                 rank++;
             });
             rankList.innerHTML = html;
+            
+            // 내 순위 바 업데이트
+            if (currentUser) {
+                const qAll = query(collection(db, "clicker"));
+                const allSnap = await getDocs(qAll);
+                let myRank = 1;
+                allSnap.forEach(d => {
+                    if (d.data().clicks > localClicks) myRank++;
+                });
+                document.getElementById('myRankPos').innerText = `${myRank}. ${currentUser.displayName} (Me)`;
+                document.getElementById('myRankCPS').innerText = `Best CPS: ${myMaxCPS || "-"}`;
+            }
         });
 
+        document.getElementById('logoutBtn').onclick = () => { if(confirm("Logout?")) signOut(auth); };
         document.getElementById('rankHeader').onclick = () => document.getElementById('rankPanel').classList.toggle('active');
     </script>
 </body>
